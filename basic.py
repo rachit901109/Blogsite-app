@@ -3,13 +3,56 @@
 # flask run
 # apply styles to a rendered template
 # https://stackoverflow.com/questions/25034812/use-a-css-stylesheet-on-a-jinja2-template
+# Using flask_sqlalchemy which is a ORM-object relational mapper which allows us to use objects to access databases
+# **flask_sqlalchemy** is a flask specific module
+
 from flask import Flask, render_template, url_for, flash, redirect
 from forms import Registration_form, Login_form
+from flask_sqlalchemy import SQLAlchemy
+from datetime import datetime
 app = Flask(__name__)
 
 
-# A secret keys helps preventing against modifying cookies, cross-site forgery attack
+# Configuration variable used to secure data in application and protect against CSRF (Cross-Site Request Forgery) attacks. It is essential to set a random and secret key for the application.
 app.config['SECRET_KEY'] = 'random123key'
+
+"""
+specifies the URI (Uniform Resource Identifier) for the database. 
+In this case, it's set to a SQLite database named site.db. SQLite is a lightweight, file-based database engine 
+that is often used for development and testing purposes. In production, you may use a different database like PostgreSQL or MySQL.
+"""
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///site.db'
+# create a db instance
+db = SQLAlchemy(app)
+
+"""
+This attribute defines a relationship between the User model and the Post model. 
+It establishes a one-to-many relationship, as each user can have multiple posts. 
+The backref parameter allows us to refer to the author of a post from the Post model using the attribute author.
+In summary, the backref parameter in the db.relationship function creates a virtual attribute in the child model (Post model) 
+that allows you to access the related parent model (User model) easily without defining an explicit column in the child model.
+"""
+
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(20), unique=True, nullable=False)
+    email = db.Column(db.String(100), unique=True, nullable=False)
+    img_file = db.Column(db.String(20), nullable=False, default='default.jpeg')
+    password = db.Column(db.String(60), nullable=False)
+    posts = db.relationship('Post', backref='author', lazy=True)   
+
+    def __repr__(self):
+        return f"Username:{self.username}\nEmail:{self.email}\nPfp:{self.img_file}"
+    
+class Post(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(50), nullable=False)
+    date_posted = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    content = db.Column(db.Text, nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+
+    def __repr__(self):
+        return f"Post('{self.title}, {self.date_posted})"
 
 dummy_posts = [
     {
@@ -42,7 +85,7 @@ def home():
 @app.route('/about')
 def about():
     # return "Nothing here"
-    return render_template('about.html',page_title='About Page')
+    return render_template('about.html',page_title='About')
 
 
 @app.route('/register',methods=['GET','POST'])
@@ -54,9 +97,15 @@ def register():
     return render_template('register.html', form=form,page_title='Register')
 
 
-@app.route('/login')
+@app.route('/login',methods=['GET','POST'])
 def login():
     form = Login_form()
+    if form.validate_on_submit():
+        if form.email.data == 'abc@gmail.com' and form.password.data == '123123':
+            flash(message='Login successfull',category='success')
+            return redirect(url_for('home'))
+        else:
+            flash(message='Username and password did not match',category='danger')
     return render_template('login.html', form=form,page_title='Login')
 
 
