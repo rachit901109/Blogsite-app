@@ -1,5 +1,11 @@
 from datetime import datetime
-from blogsite import db
+from blogsite import db, login_manager
+from flask_login import UserMixin
+
+
+@login_manager.user_loader
+def load_user(userid):
+    return User.query.get(int(userid))
 
 
 # Using flask_sqlalchemy which is a ORM-object relational mapper which allows us to use objects to access databases
@@ -12,7 +18,7 @@ In summary, the backref parameter in the db.relationship function creates a virt
 that allows you to access the related parent model (User model) easily without defining an explicit column in the child model.
 """
 
-class User(db.Model):
+class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(20), unique=True, nullable=False)
     email = db.Column(db.String(100), unique=True, nullable=False)

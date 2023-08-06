@@ -1,6 +1,8 @@
-from flask import render_template, url_for, flash, redirect
-from blogsite import app
+from flask import render_template, url_for, flash, redirect, request
+from blogsite import app, db, bcrypt
 from blogsite.forms import Registration_form, Login_form
+from blogsite.models import User, Post
+from flask_login import login_user, current_user, logout_user, login_required
 
 dummy_posts = [
     {
@@ -40,18 +42,42 @@ def about():
 def register():
     form = Registration_form()
     if form.validate_on_submit():
+        hash_pass = bcrypt.generate_password_hash(form.password.data).decode('utf-8')
+        user = User(username=form.username.data, email=form.email.data, password=hash_pass)
+        db.session.add(user)
+        db.session.commit()
         flash(message=f"Welcome {form.username.data}!", category='success')
-        return redirect(url_for('home'))
+        return redirect(url_for('login'))
     return render_template('register.html', form=form,page_title='Register')
 
 
 @app.route('/login',methods=['GET','POST'])
 def login():
+    if current_user.is_authenticated:
+        flash(message=f'You are already logged in as {current_user.username}',category='warning')
+        return redirect(url_for('home'))
     form = Login_form()
     if form.validate_on_submit():
-        if form.email.data == 'abc@gmail.com' and form.password.data == '123123':
-            flash(message='Login successfull',category='success')
-            return redirect(url_for('home'))
+        user = User.query.filter_by(email=form.email.data).first()
+        if user and bcrypt.check_password_hash(user.password, form.password.data):
+            login_user(user, form.remember.data)
+            next_page = request.args.get('next')
+            flash(message=f"Logged in as {user.username}!", category='success')
+            if next_page:
+                return redirect(next_page)
+            else:
+                return redirect(url_for('home'))
         else:
-            flash(message='Username and password did not match',category='danger')
+            flash(message='Email and password did not match',category='danger')
     return render_template('login.html', form=form,page_title='Login')
+
+
+@app.route('/logout')
+def logout():
+    logout_user()
+    return redirect(url_for('home'))
+
+@app.route('/account')
+@login_required
+def account():
+    return render_template('account.html', page_title='Account')
