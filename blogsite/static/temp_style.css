@@ -95,3 +95,17 @@ body {
   .custom-table tr:nth-child(even) {
     background-color: #f2f2f2;
   }
+
+ /* .profile-photo-container {
+    text-align: center;
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    overflow: hidden;
+  }
+ .profile-photo {
+    width: 100%;
+    height: auto;
+ } */
+
+
