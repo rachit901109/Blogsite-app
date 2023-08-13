@@ -1,6 +1,6 @@
 from flask import render_template, url_for, flash, redirect, request
 from blogsite import app, db, bcrypt
-from blogsite.forms import Registration_form, Login_form
+from blogsite.forms import Registration_form, Login_form, Update_account_form
 from blogsite.models import User, Post
 from flask_login import login_user, current_user, logout_user, login_required
 
@@ -77,8 +77,27 @@ def logout():
     logout_user()
     return redirect(url_for('home'))
 
-@app.route('/account')
+@app.route('/account',methods=['GET','POST'])
 @login_required
 def account():
+    form = Update_account_form()
+    if form.validate_on_submit():
+        current_user.username = form.username.data
+        current_user.email = form.email.data
+        db.session.commit()
+        flash(message="Account has been updated", category='success')
+        return redirect(url_for('account'))
+    # fill form with current users data
+    elif request.method == 'GET':
+        form.username.data = current_user.username
+        form.email.data = current_user.email
+
     img_file = url_for('static',filename=r'profile_pic/'+current_user.img_file)
-    return render_template('account.html', page_title='Account', img_file = img_file)
+    return render_template('account.html', page_title='Account', form = form, img_file = img_file)
+
+@app.route('/Query')
+def query():
+    user_list = []
+    for user in User.query.all():
+        user_list.append({'id':user.id,'name':user.username,'mail':user.email,'pfp':user.img_file})
+    return render_template('query.html', page_title='Query DB', user_list=user_list)

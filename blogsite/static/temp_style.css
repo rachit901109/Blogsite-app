@@ -78,3 +78,20 @@ body {
   .account-heading {
     font-size: 2.5rem;
   }
+
+  .custom-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+  }
+  .custom-table th,
+  .custom-table td {
+    padding: 10px;
+    text-align: center;
+  }
+  .custom-table th {
+    background-color: #f8f9fa;
+  }
+  .custom-table tr:nth-child(even) {
+    background-color: #f2f2f2;
+  }
