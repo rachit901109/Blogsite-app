@@ -1,6 +1,6 @@
 import os,secrets
 from PIL import Image
-from flask import render_template, url_for, flash, redirect, request
+from flask import render_template, url_for, flash, redirect, request, abort
 from blogsite import app, db, bcrypt
 from blogsite.forms import Registration_form, Login_form, Update_account_form, Post_form
 from blogsite.models import User, Post
@@ -57,11 +57,13 @@ def login():
             flash(message='Email and password did not match',category='danger')
     return render_template('login.html', form=form,page_title='Login')
 
+
 # logout functionality made easy by login manager
 @app.route('/logout')
 def logout():
     logout_user()
     return redirect(url_for('home'))
+
 
 # saves uploaded pic in profile_pic with a random name; use this name to load the updated pfp
 def save_picture(pfp):
@@ -75,6 +77,7 @@ def save_picture(pfp):
 
     resized_img.save(pfp_path)
     return pfp_name
+
 
 # account details and feature to update details
 @app.route('/account',methods=['GET','POST'])
@@ -98,16 +101,21 @@ def account():
     img_file = url_for('static',filename=r'profile_pic/'+current_user.img_file)
     return render_template('account.html', page_title='Account', form = form, img_file = img_file)
 
+
 # query page to see all users and posts
 @app.route('/Query')
 def query():
     user_list = []
+    post_list = []
     for user in User.query.all():
         user_list.append({'id':user.id,'name':user.username,'mail':user.email,'pfp':user.img_file})
-    return render_template('query.html', page_title='Query DB', user_list=user_list)
+    for post in Post.query.all():
+        post_list.append({'id':post.id,'title':post.title,'posted_date':post.date_posted.strftime(r"%B %d, %Y"),'author':post.user_id})
+    return render_template('query.html', page_title='Query DB', user_list=user_list,post_list=post_list)
 
-# add posts
-@app.route('/New Post',methods=['GET','POST'])
+
+# @login required to ensure only logged in user update posts
+@app.route('/post/new',methods=['GET','POST'])
 @login_required
 def new_post():
     form = Post_form()
@@ -118,3 +126,44 @@ def new_post():
         flash(message='Post Created',category='success')
         return redirect(url_for('home'))
     return render_template('create_post.html', page_title='New Post', form=form)
+
+
+# display individual posts by post id flask allows to create variable in our routes
+@app.route('/post/<int:post_id>')
+def post(post_id):
+    post = Post.query.get_or_404(post_id)
+    return render_template('post.html',page_title=post.title,post=post)
+
+
+# route to update post once updated return to individual post 
+@app.route('/post/<int:post_id>/update',methods=['GET','POST'])
+@login_required
+def update_post(post_id):
+    post = Post.query.get_or_404(post_id)
+    # if current user is author of post only then allow
+    if post.author != current_user:
+        abort(403)
+    form = Post_form()
+    if form.validate_on_submit():
+        post.title = form.title.data
+        post.content = form.content.data
+        db.session.commit()
+        flash(message='Updated Post',category='success')
+        return redirect(url_for('post',post_id=post.id))
+    elif request.method == 'GET':
+        form.title.data = post.title
+        form.content.data = post.content
+    return render_template('create_post.html', page_title='Update Post', form=form, legend='Update Post')
+    
+
+# delte a post return to home
+@app.route('/post/<int:post_id>/delete',methods=['POST'])
+@login_required
+def delete_post(post_id):
+    post = Post.query.get_or_404(post_id)
+    if post.author != current_user:
+        abort(403)
+    db.session.delete(post)
+    db.session.commit()
+    flash(message='Post deleted Succesfully',category='info')
+    return redirect(url_for('home'))

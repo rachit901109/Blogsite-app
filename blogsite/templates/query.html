@@ -18,11 +18,13 @@
     // ignore the errors this works
     var userData = {{ user_list | tojson }};
 
-    const postData = [
-      { id: 1, title: "Post 1", body: "This is the first post." },
-      { id: 2, title: "Post 2", body: "This is the second post." },
-      { id: 3, title: "Post 3", body: "This is the third post." }
-    ];
+    // const postData = [
+    //   { id: 1, title: "Post 1", body: "This is the first post." },
+    //   { id: 2, title: "Post 2", body: "This is the second post." },
+    //   { id: 3, title: "Post 3", body: "This is the third post." }
+    // ];
+
+    var postData = {{ post_list | tojson }}
 
     // Function to generate table HTML from data
     function generateTable(data) {
