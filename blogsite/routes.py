@@ -7,11 +7,13 @@ from blogsite.models import User, Post
 from flask_login import login_user, current_user, logout_user, login_required
 
 
+# page is a query parameter- defined set of parameters attached to the end of a URL.
 @app.route('/')
 @app.route('/home')
 def home():
-    # return "<h1> Home Page </h1>"
-    return render_template('home.html',posts=Post.query.all(),page_title='CaseBook')
+    page = request.args.get(key='page',default=1,type=int)
+    posts = Post.query.order_by(Post.date_posted.desc()).paginate(per_page=3)
+    return render_template('home.html',posts=posts,page_title='CaseBook')
 
 
 @app.route('/about')
@@ -34,6 +36,7 @@ def register():
     return render_template('register.html', form=form,page_title='Register')
 
 
+# test user was created before adding hashing feature therefore its password isnt hashed and it can't be used
 @app.route('/login',methods=['GET','POST'])
 def login():
     # if logged in user tries to login again; Not need now cause for logged in user page is now updated
@@ -44,7 +47,7 @@ def login():
     # if all fields on form are valid, check if hashed-password for submitted email matches password save in DB else flash mail password didnt match error
     if form.validate_on_submit():
         user = User.query.filter_by(email=form.email.data).first()
-        if user and bcrypt.check_password_hash(user.password, form.password.data):
+        if user and bcrypt.check_password_hash(user.password, form.password.data.encode('utf-8')):
             login_user(user, form.remember.data)
             # return user to previous page if he came to login from a prev page else return to home
             next_page = request.args.get('next')
@@ -167,3 +170,15 @@ def delete_post(post_id):
     db.session.commit()
     flash(message='Post deleted Succesfully',category='info')
     return redirect(url_for('home'))
+
+
+# 
+@app.route('/user/<string:username>/posts')
+def user_posts(username):
+    page = request.args.get(key='page',default=1,type=int)
+    user = User.query.filter_by(username=username).first_or_404()
+    img_file = url_for('static',filename=r'profile_pic/'+user.img_file)
+    posts = Post.query.filter_by(author=user)\
+        .order_by(Post.date_posted.desc())\
+        .paginate(per_page=3)
+    return render_template('user_posts.html',page_title=username,user=user,posts=posts,img_file=img_file)
