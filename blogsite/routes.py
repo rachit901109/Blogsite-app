@@ -1,10 +1,11 @@
 import os,secrets
 from PIL import Image
 from flask import render_template, url_for, flash, redirect, request, abort
-from blogsite import app, db, bcrypt
-from blogsite.forms import Registration_form, Login_form, Update_account_form, Post_form
+from blogsite import app, db, bcrypt, mail
+from blogsite.forms import Registration_form, Login_form, Update_account_form, Post_form, Request_resetform, Reset_passform
 from blogsite.models import User, Post
 from flask_login import login_user, current_user, logout_user, login_required
+from flask_mail import Message
 
 
 # page is a query parameter- defined set of parameters attached to the end of a URL.
@@ -172,7 +173,7 @@ def delete_post(post_id):
     return redirect(url_for('home'))
 
 
-# 
+# route to show posts made by a user
 @app.route('/user/<string:username>/posts')
 def user_posts(username):
     page = request.args.get(key='page',default=1,type=int)
@@ -182,3 +183,44 @@ def user_posts(username):
         .order_by(Post.date_posted.desc())\
         .paginate(per_page=3)
     return render_template('user_posts.html',page_title=username,user=user,posts=posts,img_file=img_file)
+
+# send reset password link to users mail. creates token and sends mail
+def send_reset_email(user):
+    token = user.get_reset_token()
+    msg = Message(subject="Password Reset Request", sender='djaiml1721@gmail.com', recipients=[user.email])
+    msg.body=f"Reset link only valid for 15 mins {url_for('reset_token',token=token,_external=True)}\nIgnore if you didn't make request."
+    mail.send(msg)
+
+# route to request a password change takes email
+@app.route('/reset_password', methods=['GET','POST'])
+def reset_request():
+    if current_user.is_authenticated:
+        flash(message=f'You are already logged in as {current_user.username}',category='warning')
+        return redirect(url_for('home'))
+    form = Request_resetform()
+    if form.validate_on_submit():
+        user = User.query.filter_by(email=form.email.data).first()
+        send_reset_email(user)
+        flash(message=f"Link to reset password is send to {user.email}. Link is only valid for 15 mins.", category="info")
+        return redirect(url_for('login'))
+    return render_template('reset_request.html',page_title="Request Password Reset",form=form)
+
+# route to change password if token is valid
+@app.route('/reset_password/<token>', methods=['GET','POST'])
+def reset_token(token):
+    if current_user.is_authenticated:
+        flash(message=f'You are already logged in as {current_user.username}',category='warning')
+        return redirect(url_for('home'))
+    user = User.verify_reset_token(token)
+
+    if user is None:
+        flash(message="Token is invalid or expired", category="warning")
+        return redirect(url_for('reset_request'))
+    form=Reset_passform()
+    if form.validate_on_submit():
+        hash_pass = bcrypt.generate_password_hash(form.password.data).decode('utf-8')
+        user.password = hash_pass
+        db.session.commit()
+        flash(message=f"Password changed successfully", category='success')
+        return redirect(url_for('login'))
+    return render_template('reset_token.html',page_title="Request Password Reset",form=form)

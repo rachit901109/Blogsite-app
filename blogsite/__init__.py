@@ -1,7 +1,9 @@
+import os
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
 from flask_login import LoginManager
+from flask_mail import Mail
 
 """
 Flask-Login is a popular Flask extension that provides user session management and authentication functionalities. 
@@ -26,5 +28,14 @@ bcrypt = Bcrypt(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 login_manager.login_message_category = 'danger'
+
+# flask mail config
+app.config['MAIL_SERVER'] = 'smtp.googlemail.com'
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USERNAME'] = os.environ.get('My_Mail_Add')
+app.config['MAIL_PASSWORD'] = os.environ.get('My_Mail_Pass')
+mail = Mail(app)
+
 
 from blogsite import routes
