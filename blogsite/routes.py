@@ -184,12 +184,14 @@ def user_posts(username):
         .paginate(per_page=3)
     return render_template('user_posts.html',page_title=username,user=user,posts=posts,img_file=img_file)
 
+
 # send reset password link to users mail. creates token and sends mail
 def send_reset_email(user):
     token = user.get_reset_token()
     msg = Message(subject="Password Reset Request", sender='djaiml1721@gmail.com', recipients=[user.email])
     msg.body=f"Reset link only valid for 15 mins {url_for('reset_token',token=token,_external=True)}\nIgnore if you didn't make request."
     mail.send(msg)
+
 
 # route to request a password change takes email
 @app.route('/reset_password', methods=['GET','POST'])
@@ -204,6 +206,7 @@ def reset_request():
         flash(message=f"Link to reset password is send to {user.email}. Link is only valid for 15 mins.", category="info")
         return redirect(url_for('login'))
     return render_template('reset_request.html',page_title="Request Password Reset",form=form)
+
 
 # route to change password if token is valid
 @app.route('/reset_password/<token>', methods=['GET','POST'])
