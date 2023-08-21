@@ -1,29 +1,13 @@
-import os,secrets
-from PIL import Image
-from flask import render_template, url_for, flash, redirect, request, abort
-from blogsite import app, db, bcrypt, mail
-from blogsite.forms import Registration_form, Login_form, Update_account_form, Post_form, Request_resetform, Reset_passform
+from flask import render_template, url_for, flash, redirect, request, Blueprint
+from blogsite import db, bcrypt
+from blogsite.users.forms import Registration_form, Login_form, Update_account_form, Request_resetform, Reset_passform
 from blogsite.models import User, Post
 from flask_login import login_user, current_user, logout_user, login_required
-from flask_mail import Message
+from blogsite.users.utils import save_picture, send_reset_email
 
+users = Blueprint(name='users',import_name=__name__)
 
-# page is a query parameter- defined set of parameters attached to the end of a URL.
-@app.route('/')
-@app.route('/home')
-def home():
-    page = request.args.get(key='page',default=1,type=int)
-    posts = Post.query.order_by(Post.date_posted.desc()).paginate(per_page=3)
-    return render_template('home.html',posts=posts,page_title='CaseBook')
-
-
-@app.route('/about')
-def about():
-    # return "Nothing here"
-    return render_template('about.html',page_title='About')
-
-
-@app.route('/register',methods=['GET','POST'])
+@users.route('/register',methods=['GET','POST'])
 def register():
     form = Registration_form()
     # if form is valid create user add to db commit flash success and return to login; else render register page again
@@ -33,17 +17,17 @@ def register():
         db.session.add(user)
         db.session.commit()
         flash(message=f"Welcome {form.username.data}!", category='success')
-        return redirect(url_for('login'))
+        return redirect(url_for('users.login'))
     return render_template('register.html', form=form,page_title='Register')
 
 
 # test user was created before adding hashing feature therefore its password isnt hashed and it can't be used
-@app.route('/login',methods=['GET','POST'])
+@users.route('/login',methods=['GET','POST'])
 def login():
     # if logged in user tries to login again; Not need now cause for logged in user page is now updated
     if current_user.is_authenticated:
         flash(message=f'You are already logged in as {current_user.username}',category='warning')
-        return redirect(url_for('home'))
+        return redirect(url_for('main.home'))
     form = Login_form()
     # if all fields on form are valid, check if hashed-password for submitted email matches password save in DB else flash mail password didnt match error
     if form.validate_on_submit():
@@ -56,35 +40,21 @@ def login():
             if next_page:
                 return redirect(next_page)
             else:
-                return redirect(url_for('home'))
+                return redirect(url_for('main.home'))
         else:
             flash(message='Email and password did not match',category='danger')
     return render_template('login.html', form=form,page_title='Login')
 
 
 # logout functionality made easy by login manager
-@app.route('/logout')
+@users.route('/logout')
 def logout():
     logout_user()
-    return redirect(url_for('home'))
-
-
-# saves uploaded pic in profile_pic with a random name; use this name to load the updated pfp
-def save_picture(pfp):
-    random_hex = secrets.token_hex(8)
-    _,ext = os.path.splitext(pfp.filename)
-    pfp_name = random_hex+ext
-    pfp_path = os.path.join(app.root_path,'static/profile_pic',pfp_name)
-
-    resized_img = Image.open(pfp)
-    resized_img.thumbnail(tuple([150,150]))
-
-    resized_img.save(pfp_path)
-    return pfp_name
+    return redirect(url_for('main.home'))
 
 
 # account details and feature to update details
-@app.route('/account',methods=['GET','POST'])
+@users.route('/account',methods=['GET','POST'])
 @login_required
 def account():
     form = Update_account_form()
@@ -96,7 +66,7 @@ def account():
         current_user.email = form.email.data
         db.session.commit()
         flash(message="Account has been updated", category='success')
-        return redirect(url_for('account'))
+        return redirect(url_for('users.account'))
     # fill form with current users data
     elif request.method == 'GET':
         form.username.data = current_user.username
@@ -107,7 +77,7 @@ def account():
 
 
 # query page to see all users and posts
-@app.route('/Query')
+@users.route('/Query')
 def query():
     user_list = []
     post_list = []
@@ -118,63 +88,8 @@ def query():
     return render_template('query.html', page_title='Query DB', user_list=user_list,post_list=post_list)
 
 
-# @login required to ensure only logged in user update posts
-@app.route('/post/new',methods=['GET','POST'])
-@login_required
-def new_post():
-    form = Post_form()
-    if form.validate_on_submit():
-        post = Post(title=form.title.data, content= form.content.data, author=current_user)
-        db.session.add(post)
-        db.session.commit()
-        flash(message='Post Created',category='success')
-        return redirect(url_for('home'))
-    return render_template('create_post.html', page_title='New Post', form=form)
-
-
-# display individual posts by post id flask allows to create variable in our routes
-@app.route('/post/<int:post_id>')
-def post(post_id):
-    post = Post.query.get_or_404(post_id)
-    return render_template('post.html',page_title=post.title,post=post)
-
-
-# route to update post once updated return to individual post 
-@app.route('/post/<int:post_id>/update',methods=['GET','POST'])
-@login_required
-def update_post(post_id):
-    post = Post.query.get_or_404(post_id)
-    # if current user is author of post only then allow
-    if post.author != current_user:
-        abort(403)
-    form = Post_form()
-    if form.validate_on_submit():
-        post.title = form.title.data
-        post.content = form.content.data
-        db.session.commit()
-        flash(message='Updated Post',category='success')
-        return redirect(url_for('post',post_id=post.id))
-    elif request.method == 'GET':
-        form.title.data = post.title
-        form.content.data = post.content
-    return render_template('create_post.html', page_title='Update Post', form=form, legend='Update Post')
-    
-
-# delte a post return to home
-@app.route('/post/<int:post_id>/delete',methods=['POST'])
-@login_required
-def delete_post(post_id):
-    post = Post.query.get_or_404(post_id)
-    if post.author != current_user:
-        abort(403)
-    db.session.delete(post)
-    db.session.commit()
-    flash(message='Post deleted Succesfully',category='info')
-    return redirect(url_for('home'))
-
-
 # route to show posts made by a user
-@app.route('/user/<string:username>/posts')
+@users.route('/user/<string:username>/posts')
 def user_posts(username):
     page = request.args.get(key='page',default=1,type=int)
     user = User.query.filter_by(username=username).first_or_404()
@@ -185,45 +100,37 @@ def user_posts(username):
     return render_template('user_posts.html',page_title=username,user=user,posts=posts,img_file=img_file)
 
 
-# send reset password link to users mail. creates token and sends mail
-def send_reset_email(user):
-    token = user.get_reset_token()
-    msg = Message(subject="Password Reset Request", sender='djaiml1721@gmail.com', recipients=[user.email])
-    msg.body=f"Reset link only valid for 15 mins {url_for('reset_token',token=token,_external=True)}\nIgnore if you didn't make request."
-    mail.send(msg)
-
-
 # route to request a password change takes email
-@app.route('/reset_password', methods=['GET','POST'])
+@users.route('/reset_password', methods=['GET','POST'])
 def reset_request():
     if current_user.is_authenticated:
         flash(message=f'You are already logged in as {current_user.username}',category='warning')
-        return redirect(url_for('home'))
+        return redirect(url_for('main.home'))
     form = Request_resetform()
     if form.validate_on_submit():
         user = User.query.filter_by(email=form.email.data).first()
         send_reset_email(user)
         flash(message=f"Link to reset password is send to {user.email}. Link is only valid for 15 mins.", category="info")
-        return redirect(url_for('login'))
+        return redirect(url_for('users.login'))
     return render_template('reset_request.html',page_title="Request Password Reset",form=form)
 
 
 # route to change password if token is valid
-@app.route('/reset_password/<token>', methods=['GET','POST'])
+@users.route('/reset_password/<token>', methods=['GET','POST'])
 def reset_token(token):
     if current_user.is_authenticated:
         flash(message=f'You are already logged in as {current_user.username}',category='warning')
-        return redirect(url_for('home'))
+        return redirect(url_for('main.home'))
     user = User.verify_reset_token(token)
 
     if user is None:
         flash(message="Token is invalid or expired", category="warning")
-        return redirect(url_for('reset_request'))
+        return redirect(url_for('users.reset_request'))
     form=Reset_passform()
     if form.validate_on_submit():
         hash_pass = bcrypt.generate_password_hash(form.password.data).decode('utf-8')
         user.password = hash_pass
         db.session.commit()
         flash(message=f"Password changed successfully", category='success')
-        return redirect(url_for('login'))
+        return redirect(url_for('users.login'))
     return render_template('reset_token.html',page_title="Request Password Reset",form=form)
