@@ -14,7 +14,7 @@ It simplifies the process of handling user logins, logouts, and user session man
 db = SQLAlchemy()
 bcrypt = Bcrypt()
 login_manager = LoginManager()
-login_manager.login_view = 'user.login'
+login_manager.login_view = 'users.login'
 login_manager.login_message_category = 'danger'
 
 mail = Mail()
@@ -35,9 +35,11 @@ def create_app(config_class = config):
     from blogsite.users.routes import users
     from blogsite.posts.routes import posts
     from blogsite.main.routes import main
+    from blogsite.errors.handlers import errors
 
     app.register_blueprint(users)
     app.register_blueprint(posts)
     app.register_blueprint(main)
+    app.register_blueprint(errors)
 
     return app
