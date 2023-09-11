@@ -23,6 +23,6 @@ def save_picture(pfp):
 # send reset password link to users mail. creates token and sends mail
 def send_reset_email(user):
     token = user.get_reset_token()
-    msg = Message(subject="Password Reset Request", sender='djaiml1721@gmail.com', recipients=[user.email])
+    msg = Message(subject="Password Reset Request", sender=os.environ.get('My_Mail_Add'), recipients=[user.email])
     msg.body=f"Reset link only valid for 15 mins {url_for('users.reset_token',token=token,_external=True)}\nIgnore if you didn't make request."
     mail.send(msg)
