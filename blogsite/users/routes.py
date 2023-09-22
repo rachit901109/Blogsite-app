@@ -82,9 +82,9 @@ def query():
     user_list = []
     post_list = []
     for user in User.query.all():
-        user_list.append({'id':user.id,'name':user.username,'mail':user.email,'pfp':user.img_file})
+        user_list.append({'user_id':user.id,'name':user.username,'mail':user.email,'pfp':user.img_file})
     for post in Post.query.all():
-        post_list.append({'id':post.id,'title':post.title,'posted_date':post.date_posted.strftime(r"%B %d, %Y"),'author':post.user_id})
+        post_list.append({'post_id':post.id,'title':post.title[:10]+'...','date':post.date_posted.strftime(r"%B %d, %Y"),'user_id':post.user_id, 'name':post.author.username})
     return render_template('query.html', page_title='Query DB', user_list=user_list,post_list=post_list)
 
 
