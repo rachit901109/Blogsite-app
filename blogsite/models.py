@@ -4,6 +4,19 @@ from blogsite import db, login_manager
 from flask_login import UserMixin
 from itsdangerous import URLSafeTimedSerializer as sr
 
+#changes in post_feature branch(User Model)
+# count of posts created by a user. Column in user model. 
+# rated_posts which is a relationship b/w user and postratings gives all posts rated by a user
+# saved_posts relationship b/w user and posts gives all posts saved by a user.
+
+#changes in post_feature branch(Post Model)
+# avg rating value for a post which is calc by mean of ratings given by multiple users
+# ratings which is a relationship b/w posts and postrating table
+
+#changes in post_feature branch(postrating Model)
+# id for each user rating a post primary key.
+# userid foreign key, postid foreign key
+# value/rating for postid rated by userid
 
 @login_manager.user_loader
 def load_user(userid):
