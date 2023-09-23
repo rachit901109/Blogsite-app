@@ -7,7 +7,7 @@ class config():
     In this case, it's set to a SQLite database named site.db. SQLite is a lightweight, file-based database engine 
     that is often used for development and testing purposes. In production, you may use a different database like PostgreSQL or MySQL.
     """
-    SQLALCHEMY_DATABASE_URI = 'sqlite:///site.db'
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///test_model.db'
     MAIL_SERVER = 'smtp.googlemail.com'
     MAIL_PORT = 587
     MAIL_USE_TLS = True
