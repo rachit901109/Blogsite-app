@@ -98,7 +98,7 @@ class Post(db.Model):
 
     @property
     def update_rating(self):
-        return sum(item.value for item in self.rated_by_association)/len(self.rated_by_association)
+        return round(sum(item.value for item in self.rated_by_association)/len(self.rated_by_association),2)
 
     def __repr__(self):
         if len(self.tags)>0:
