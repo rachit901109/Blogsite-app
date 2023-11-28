@@ -56,7 +56,7 @@ class User(db.Model):
     email = db.Column(db.String(100), unique=True, nullable=False)
     img_file = db.Column(db.String(20), nullable=False, default='default.jpeg')
     password = db.Column(db.String(60), nullable=False)
-    posts = db.relationship('Post', backref='author', lazy=True)   
+    posts = db.relationship('Post', backref='author', lazy=True)    
 
     saved = db.relationship('Post', secondary="saved_table", backref='saved_by', lazy=True)
 
