@@ -1,0 +1,64 @@
+<!-- templates/recommendation_engine.html -->
+
+{% extends 'layout.html' %}
+
+{% block page_content %}
+    <h2>Recommendation Engine</h2>
+    <form method="POST" action="{{ url_for('main.recommendation_engine') }}">
+        {{ form.csrf_token }}
+        <div class="mb-3">
+            <label for="username" class="form-label">Username:</label>
+            {{ form.username(class="form-control") }}
+        </div>
+        <div class="mb-3">
+            <label for="engine" class="form-label">Recommendation Engine:</label>
+            {{ form.engine(class="form-control") }}
+        </div>
+        <button type="submit" class="btn btn-primary">Submit</button>
+    </form>
+
+    {% if recommended_posts %}
+        <h3>Recommended Posts:</h3>
+        {% if recommended_posts.previously_rated %}
+            <h4>Previously Rated:</h4>
+            <ul>
+                {% for post in recommended_posts.previously_rated %}
+                    <li>
+                        <a href="{{ url_for('posts.post', post_id=post.id) }}">{{ post.title }}</a>
+                        {% if post.tags %}
+                            <p>Tags:
+                                {% for tag in post.tags %}
+                                    {{ tag.name }}
+                                {% endfor %}
+                            </p>
+                        {% endif %}
+                        {% if post.rating %}
+                            <p>Rating: {{ post.rating }}</p>
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+
+        {% if recommended_posts.recommended %}
+            <h4>Recommendations:</h4>
+            <ul>
+                {% for post in recommended_posts.recommended %}
+                    <li>
+                        <a href="{{ url_for('posts.post', post_id=post.id) }}">{{ post.title }}</a>
+                        {% if post.tags %}
+                            <p>Tags:
+                                {% for tag in post.tags %}
+                                    {{ tag.name }}
+                                {% endfor %}
+                            </p>
+                        {% endif %}
+                        {% if post.rating %}
+                            <p>Rating: {{ post.rating }}</p>
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    {% endif %}
+{% endblock %}

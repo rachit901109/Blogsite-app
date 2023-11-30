@@ -50,7 +50,7 @@ class post_ratings(db.Model):
         return f"rating_id: {self.id}, User: {self.user_id}, post_rated: {self.post_id}, value: {self.value}"   
 
 # New Models for the database 
-class User(db.Model):
+class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(20), unique=True, nullable=False)
     email = db.Column(db.String(100), unique=True, nullable=False)
