@@ -1,7 +1,7 @@
 from flask import render_template, url_for, flash, redirect, request, abort, Blueprint
 from blogsite import db
-from blogsite.posts.forms import Post_form
-from blogsite.models import Post
+from blogsite.posts.forms import Post_form, Rate_post_form
+from blogsite.models import Post, post_ratings
 from flask_login import current_user, login_required
 
 posts = Blueprint(name='posts',import_name=__name__)
@@ -22,10 +22,28 @@ def new_post():
 
 
 # display individual posts by post id flask allows to create variable in our routes
-@posts.route('/post/<int:post_id>')
+@posts.route('/post/<int:post_id>', methods=['GET','POST'])
+@login_required
 def post(post_id):
     post = Post.query.get_or_404(post_id)
-    return render_template('post.html',page_title=post.title,post=post)
+    form = Rate_post_form()
+
+    # if user has already rated the post the update the rating
+    user_rating = post_ratings.query.filter_by(user_id=current_user.id, post_id=post.id).first()
+
+    if form.validate_on_submit():
+        if user_rating:
+            user_rating.value = int(form.rating.data)
+            post.rating = post.update_rating
+            db.session.commit()
+            flash(message='Rating Updated',category='success')
+        else:
+            rating = post_ratings(user_id=current_user.id, post_id=post.id, value=int(form.rating.data))
+            db.session.add(rating)
+            post.rating = post.update_rating
+            db.session.commit()
+            flash(message='Rating Added',category='success')
+    return render_template('post.html',page_title=post.title,post=post,form=form)
 
 
 # route to update post once updated return to individual post 

@@ -13,8 +13,15 @@
     </div>
   </div>
   <div class="media-body">
-    <h2><a class="article-title" href="{{ url_for('posts.post',post_id=post.id) }}">{{ post.title }}</a></h2>
+    <h2><a class="article-title" href="{{ url_for('posts.post', post_id=post.id) }}">{{ post.title }}</a></h2>
     <p class="article-content">{{ post.content }}</p>
+    
+    <!-- Display Rating and Saves -->
+    <p>Rating: {{ post.rating }}</p>
+    <p>Saves: {{ post.saved_by | length }}</p>
+
+    <!-- Link to Post -->
+    <a href="{{ url_for('posts.post', post_id=post.id) }}" class="btn btn-primary">Rate Now</a>
   </div>
 </article>
 <hr>

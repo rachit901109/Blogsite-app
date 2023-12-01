@@ -6,13 +6,15 @@
       src="{{ url_for('static',filename='profile_pic/'+post.author.img_file) }}" alt="Profile Photo of author">
     <div style="margin-left: 10px;">
       <div class="article-metadata">
-        <a class="mr-2" href="{{ url_for('users.user_posts',username=post.author.username) }}">{{ post.author.username }}</a>
+        <a class="mr-2" href="{{ url_for('users.user_posts',username=post.author.username) }}">{{ post.author.username
+          }}</a>
         <small class="text-muted" style="font-size: 0.75rem;">{{ post.date_posted.strftime('%d-%m-%Y') }}</small>
         {% if post.author == current_user %}
-          <div>
-            <a class="btn btn-secondary btn-sm" href="{{ url_for('posts.update_post',post_id=post.id) }}">Update</a>
-            <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteModal">Delete</button>
-          </div>
+        <div>
+          <a class="btn btn-secondary btn-sm" href="{{ url_for('posts.update_post',post_id=post.id) }}">Update</a>
+          <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal"
+            data-bs-target="#deleteModal">Delete</button>
+        </div>
         {% endif %}
       </div>
     </div>
@@ -20,10 +22,32 @@
   <div class="media-body">
     <h2 class="article-title">{{ post.title }}</h2>
     <p class="article-content">{{ post.content }}</p>
+
+    <!-- Display Rating and Saves -->
+    <p>Rating: {{ post.rating }}</p>
+    <p>Saves: {{ post.saved_by | length }}</p>
+
+    <!-- Rating Form -->
+    <form method="POST" action="{{ url_for('posts.post', post_id=post.id) }}" class="content-section">
+      {{ form.hidden_tag() }}
+      <fieldset class="form-group">
+        <legend class="border-bottom mb-4">Rate this Post</legend>
+        <div class="form-group">
+          <label for="{{ form.rating.id }}" class="form-control-label">{{ form.rating.label }}</label>
+          {{ form.rating(class="form-control form-control-lg") }}
+        </div>
+      </fieldset>
+      <div class="form-group">
+        <button type="submit" class="btn btn-primary">{{ form.submit.label }}</button>
+      </div>
+    </form>
+
+
   </div>
 </article>
 <hr>
-<div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" aria-labelledby="deleteModalLabel" aria-hidden="true">
+<div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" aria-labelledby="deleteModalLabel"
+  aria-hidden="true">
   <div class="modal-dialog" role="document">
     <div class="modal-content">
       <div class="modal-header">
